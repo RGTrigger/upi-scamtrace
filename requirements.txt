@@ -1,0 +1,9 @@
+streamlit>=1.50,<2
+langgraph>=0.2,<2
+pydantic>=2.7,<3
+networkx>=3.2,<4
+pandas>=2.2,<3
+plotly>=5.20,<7
+pytest>=8,<9
+groq>=0.31,<2
+python-dotenv>=1,<2
