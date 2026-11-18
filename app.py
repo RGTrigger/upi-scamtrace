@@ -19,7 +19,7 @@ from scamtrace.agents import AGENT_NAMES
 st.set_page_config(page_title="UPI ScamTrace",page_icon="🛡️",layout="wide",initial_sidebar_state="expanded")
 database.init_db()
 llm_config=providers.config_summary()
-PAGES=["Dashboard","New Investigation","Case History","Analytics","Settings","About Project"]
+PAGES=["Dashboard","New Investigation","Case History","Analytics","About Project"]
 CSS="""
 <style>
 :root{--emerald:#142923;--gold:#C6A76A;--ivory:#F5F2EA;--card:#FFFCF5;--ink:#17231E;--muted:#66716A;--line:#E9E1D2}
@@ -140,7 +140,14 @@ div.stButton>button:disabled,div.stDownloadButton>button:disabled{background:#e9
 .st-key-risk-overview-panel [data-testid="stPlotlyChart"],.st-key-journey-stages-panel [data-testid="stPlotlyChart"]{height:162px!important}
 .st-key-recent-cases-panel,.st-key-agent-status-panel{margin-top:13px!important}
 .st-key-recent-cases-panel .ref-table th{padding:6px 7px!important}.st-key-recent-cases-panel .ref-table td{padding:6px 7px!important}
-.agent-card{height:99px!important;box-sizing:border-box!important;overflow-wrap:anywhere}.st-key-agent-status-panel{min-height:198px!important}
+.agent-status-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;min-height:25px}
+.agent-status-heading h3{margin:0!important;font-size:16px!important;line-height:1.2!important}
+.agent-status-heading .status-pill{float:none!important;margin:0!important;padding:4px 7px!important;font-size:9px!important;white-space:nowrap}
+.agent-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.agent-card{height:70px!important;min-height:70px!important;box-sizing:border-box!important;overflow:hidden!important;border:1px solid #e6d9c5;border-radius:9px;background:#fffaf0;padding:6px 4px!important;text-align:center!important;font-size:10px!important;font-weight:700;line-height:1.08!important;white-space:normal!important}
+.agent-card .agent-icon{display:block!important;height:22px!important;margin:0 auto 3px!important;font-size:19px!important;line-height:22px!important;color:#C6A76A}
+.agent-card small{display:block!important;margin-top:3px!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:8px!important;color:#66716A!important;font-weight:650}
+.st-key-agent-status-panel [data-testid="stVerticalBlockBorderWrapper"]>div{min-height:198px!important;box-sizing:border-box!important;padding:9px 10px!important}
 .stMarkdownContainer:has(.investigation-hero-reference){margin-bottom:0!important}
 .st-key-intake-evidence-panel,.st-key-intake-guidelines-panel{margin-top:4px!important}
 .st-key-intake-evidence-panel [data-testid="stVerticalBlockBorderWrapper"]>div{padding:8px!important}
@@ -151,16 +158,21 @@ div.stButton>button:disabled,div.stDownloadButton>button:disabled{background:#e9
 .st-key-case-preview-panel .history-meta{gap:6px}
 .st-key-analytics-distribution [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-agent-performance [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-outcomes [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-mapping [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-common-findings [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-correlation [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-trend [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-impact [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-insights [data-testid="stVerticalBlockBorderWrapper"]>div{padding:9px!important}
 .st-key-analytics-outcomes .stCaption{display:none!important}
+.st-key-analytics-outcomes [data-testid="stVerticalBlockBorderWrapper"]>div{overflow:visible!important;padding:8px!important}
+.st-key-analytics-outcomes [data-testid="stPlotlyChart"]{width:100%!important;height:128px!important;overflow:visible!important}
+.st-key-analytics-outcomes [data-testid="stPlotlyChart"]>div,.st-key-analytics-outcomes [data-testid="stPlotlyChart"] .plot-container{width:100%!important;height:128px!important}
 .st-key-analytics-trend{margin-top:10px!important}
-.st-key-analytics-trend [data-testid="stPlotlyChart"]{height:88px!important}
+.st-key-analytics-trend [data-testid="stPlotlyChart"]{height:118px!important}
 .supported-evidence-list{display:flex;flex-direction:column}
 .supported-evidence-item{height:52px;box-sizing:border-box;border-bottom:1px solid #eee5d7;display:flex;align-items:center;gap:13px;padding:4px 3px}
 .supported-evidence-item:last-child{border-bottom:0}.supported-evidence-item>span{width:34px;text-align:center;font-size:22px;color:#B27B1A}.supported-evidence-item b{display:block;font-size:12px;line-height:1.15}.supported-evidence-item small{display:block;color:#66716A;font-size:10px;line-height:1.15;margin-top:2px}
-.insights-title{background:#142923;color:#fff;padding:9px 12px;border-radius:9px;margin:-1px -1px 8px;font-size:16px;font-weight:750}
+.insights-title{background:#142923;color:#fff;padding:6px 9px;border-radius:8px;margin:0 0 5px;font-size:13px;font-weight:750;line-height:1.15;box-sizing:border-box}
 .dist-layout,.outcome-layout{display:grid;grid-template-columns:142px minmax(0,1fr);gap:7px;align-items:center}
 .dist-list,.outcome-list{display:flex;flex-direction:column;gap:3px}.dist-row,.outcome-row{display:grid;grid-template-columns:17px minmax(0,1fr) auto;align-items:center;gap:5px;min-height:20px;font-size:10px;line-height:1.1}.dist-row i,.outcome-row i{width:10px;height:10px;border-radius:50%;display:inline-block}.dist-row b,.outcome-row b{font-size:10px;white-space:nowrap}
 .agent-perf-list{display:flex;flex-direction:column;gap:1px}.agent-perf-row{display:grid;grid-template-columns:112px minmax(0,1fr) 38px;gap:6px;align-items:center;min-height:20px;font-size:10px;line-height:1.05;border-bottom:1px solid #eee5d7;padding-bottom:1px}.agent-perf-row b{font-size:10px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.agent-perf-row small{display:block;color:#66716A;font-size:8px;line-height:1.05;white-space:nowrap}.agent-perf-row strong{font-size:10px;text-align:right}.agent-conf-track{height:7px;background:#e1eadc;border-radius:9px;overflow:hidden}.agent-conf-track span{display:block;height:100%;background:linear-gradient(90deg,#178753,#07543a);border-radius:9px}
-.analytics-key-insights{font-size:11px;line-height:1.45}.analytics-key-insights div{margin:0 0 5px;display:flex;gap:6px}.analytics-key-insights i{color:#178753;font-style:normal;font-weight:800}
+.analytics-key-insights{font-size:9px;line-height:1.18}.analytics-key-insights div{margin:0 0 3px;display:flex;align-items:flex-start;gap:4px}.analytics-key-insights i{color:#178753;font-style:normal;font-weight:800;flex:0 0 auto}.analytics-key-insights span{display:block}
+.st-key-analytics-trend [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-impact [data-testid="stVerticalBlockBorderWrapper"]>div,.st-key-analytics-insights [data-testid="stVerticalBlockBorderWrapper"]>div{min-height:168px!important}
+.st-key-analytics-insights [data-testid="stVerticalBlockBorderWrapper"]>div{height:168px!important;overflow:hidden!important;box-sizing:border-box!important}
 [data-testid="stTabs"]:has(button[aria-label*="Evidence & Agent Analysis"]) [data-baseweb="tab-list"]{display:flex!important;background:#fffaf1!important;border:1px solid #e8dfcf!important;border-radius:13px!important;padding:4px!important;gap:4px!important}
 [data-testid="stTabs"]:has(button[aria-label*="Evidence & Agent Analysis"]) [data-baseweb="tab"]{flex:1!important;justify-content:center!important;border-radius:9px!important;min-height:38px!important}
 [data-testid="stTabs"]:has(button[aria-label*="Evidence & Agent Analysis"]) [data-baseweb="tab"][aria-selected="true"]{background:#142923!important;color:#fff!important;box-shadow:inset 0 -2px 0 #C6A76A!important}
@@ -175,6 +187,29 @@ div.stButton>button:disabled,div.stDownloadButton>button:disabled{background:#e9
 .st-key-settings-application .stElementContainer:has([data-testid="stCheckbox"]),.st-key-settings-security .stElementContainer:has([data-testid="stCheckbox"]),.st-key-settings-ai .stElementContainer:has([data-testid="stCheckbox"]){margin-left:auto!important}
 
 @media(max-width:900px){[data-testid="stSidebar"]{min-width:220px!important;width:220px!important}.block-container{padding-left:1rem;padding-right:1rem}}
+@media(max-width:1200px){
+.analytics-banner{height:82px!important;padding:7px 9px!important}
+.analytics-metric{min-width:82px!important;padding:5px 6px!important}
+.analytics-metric strong{font-size:17px!important}
+.analytics-metric small{font-size:9px!important}
+.analytics-metrics{gap:4px!important}
+.agent-perf-row{grid-template-columns:96px minmax(0,1fr) 32px!important}
+.mapping-table{font-size:8px!important}
+.mapping-table th:first-child,.mapping-table td:first-child{font-size:9px!important}
+.sidebar-phone{display:none!important}
+}
+@media(max-width:760px){
+.block-container{padding-left:.55rem!important;padding-right:.55rem!important}
+[data-testid="stSidebar"]{min-width:72px!important;width:72px!important}
+.brand img{width:72px!important;object-fit:contain!important}
+[data-testid="stSidebar"] div.stButton>button{font-size:0!important;padding:0!important;text-align:center!important}
+[data-testid="stSidebar"] div.stButton>button p{font-size:18px!important}
+.analytics-banner{align-items:flex-start!important;height:auto!important;min-height:82px!important}
+.analytics-banner p{display:none!important}
+.analytics-metrics{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.analytics-metric{min-width:0!important}
+.analytics-metric:nth-child(n+4){display:none!important}
+}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 </style>"""
 st.markdown(CSS,unsafe_allow_html=True)
@@ -403,13 +438,14 @@ if page=="Dashboard":
             found={f['agent_name']:f for f in ((analyzed or {}).get('findings') or [])}
             active=sum(1 for name in AGENT_NAMES if name in found and found[name].get('status') in ('success','local','fallback'))
             stat=f"{active}/6 with saved findings" if active else "Ready for investigation"
-            st.markdown(f"### Multi-Agent System Status <span class='status-pill'>● {stat}</span>",unsafe_allow_html=True)
+            st.markdown(f'<div class="agent-status-heading"><h3>Multi-Agent System Status</h3><span class="status-pill">● {stat}</span></div>',unsafe_allow_html=True)
             titles=[("💬","Message Agent"),("🔗","Link & QR Agent"),("💳","Payment Agent"),("▦","Timeline Agent"),("♧","Investigator Agent"),("♢","Decision Agent")]
-            cols=st.columns(6,gap="small")
-            for col,(icon,name) in zip(cols,titles):
+            cards=[]
+            for icon,name in titles:
                 lookup="Journey Agent" if name=="Investigator Agent" else name
                 f=found.get(lookup); label=(f.get('model') or f.get('provider','local')) if f else "Ready"
-                col.markdown(f'<div class="agent-card"><span class="agent-icon">{icon}</span>{name}<br><small>{label}</small></div>',unsafe_allow_html=True)
+                cards.append(f'<div class="agent-card"><span class="agent-icon">{icon}</span>{name}<small>{label}</small></div>')
+            st.markdown('<div class="agent-status-grid">'+''.join(cards)+'</div>',unsafe_allow_html=True)
 
 elif page=="New Investigation":
     header("New Investigation","Provide the evidence from your UPI interaction to reconstruct the scam journey.")
@@ -629,7 +665,7 @@ elif page=="Case History":
         if not c: st.session_state.selected_case=None; st.rerun()
         header(c['title'],f"Case ID: {c['id']} · {'Synthetic demo' if c['synthetic'] else 'User-provided'} · {risk(c).replace('_',' ')}")
         if st.button("← Back to Case History"): st.session_state.selected_case=None; st.rerun()
-        tabs=st.tabs(["Scam Timeline","Evidence & Agent Analysis","Evidence Graph","Scam Tracker / Journey Tracker","Final Assessment","Report & Actions"])
+        tabs=st.tabs(["Scam Timeline","Evidence & Agent Analysis","Scam Tracker / Journey Tracker","Final Assessment","Report & Actions"])
         with tabs[0]:
             st.subheader("Scam Timeline")
             for e in c['events']:
@@ -656,17 +692,11 @@ elif page=="Case History":
                     if f.get('fallback_reason'): st.caption("Fallback reason: "+f['fallback_reason'].replace('_',' '))
             if st.button("Run / Update Investigation",type="primary"): run(selected)
         with tabs[2]:
-            st.subheader("Temporal Evidence Graph")
-            rel=c.get('relations') or []
-            if rel: st.dataframe(pd.DataFrame(rel),width="stretch",hide_index=True)
-            else: st.info("No grounded relations yet. Run investigation to build chronological and exact-match relations.")
-            st.caption("Edges are evidence links, not proof of common ownership or fraud.")
-        with tabs[3]:
             st.subheader("Candidate Scam Journey")
             stages=[("Initial Contact",any(e['event_type'] in ('message','call_summary') for e in c['events'])),("Trust Building",any('support' in e['content'].lower() or 'bank' in e['content'].lower() for e in c['events'])),("Link / App Induced",any(e['event_type'] in ('url','qr_payload') or 'http' in e['content'] for e in c['events'])),("Payment Request",any(e['event_type']=='payment_request' for e in c['events'])),("Payment Attempt",any(e['event_type']=='payment_attempt' for e in c['events']))]
             for i,(name,seen) in enumerate(stages): st.write(("✅" if seen else "○")+f"  {i+1}. {name} — "+("observed in supplied evidence" if seen else "not observed"))
             st.caption("Candidate stages are rule-derived, not official tracking. Unobserved stages are not assumed.")
-        with tabs[4]:
+        with tabs[3]:
             a=c.get('assessment') or {}; st.subheader("Final Assessment")
             st.metric("Risk Level",a.get('risk_level','INSUFFICIENT_EVIDENCE').replace('_',' '),f"Score {a.get('score','—')} / 100 (rule index, not a probability)")
             st.caption(a.get('reason','No investigation has been run yet.'))
@@ -686,7 +716,7 @@ elif page=="Case History":
                 st.markdown("**Safe next steps**")
                 st.markdown("<br>".join("• "+x for x in (a.get('recommendations',[]) or ["No additional steps recorded."])),unsafe_allow_html=True)
             st.caption("ScamTrace is a student prototype, not affiliated with UPI or any bank.")
-        with tabs[5]:
+        with tabs[4]:
             st.subheader("Report & Actions")
             report={k:c.get(k) for k in ['id','title','summary','synthetic','events','assessment','findings','relations']}
             md=f"# UPI ScamTrace Case Report — {c['title']}\n\nCase: {c['id']} | Synthetic: {bool(c['synthetic'])}\n\n## Assessment\n\n{json.dumps(c.get('assessment'),indent=2)}\n\n## Timeline\n"+"\n".join(f"- {e['timestamp']} · {e['event_type']} · {e['channel']} · {e['id']}: {e['content']}" for e in c['events'])+"\n\nUser-provided evidence is not independently verified. This prototype cannot reverse transactions."
@@ -784,9 +814,9 @@ elif page=="Case History":
                         for e in c['events'][:5]: st.markdown(f"**{e['timestamp'][:16]} · {e['event_type'].replace('_',' ').title()}**　{e['channel']}<br>{e['content'][:180]}",unsafe_allow_html=True)
                     with tabs[2]:
                         for e in c['events'][:7]: st.markdown(f"**{e['event_type'].replace('_',' ').title()}** · {e['channel']} · {e['id']}<br>{e['content'][:140]}",unsafe_allow_html=True)
-                    with tabs[3]:
+                    with tabs[2]:
                         for f in (c.get('findings') or []): st.markdown(f"**{f['agent_name']}** · {f.get('provider','local')} · {f['status']}<br>{f['summary']}",unsafe_allow_html=True)
-                    with tabs[4]:
+                    with tabs[3]:
                         st.caption("Reports include the assessment, evidence timeline, and saved findings.")
                         if st.download_button("Download Markdown report",f"# {c['title']}\n\n{json.dumps(c.get('assessment'),indent=2)}",file_name=f"{c['id']}.md",mime="text/markdown",key="history_report_"+c['id']): st.toast("Report downloaded")
                     if st.button("Open selected case workspace",type="primary",key="history_workspace"):
@@ -800,7 +830,7 @@ elif page=="Analytics":
     events=[e for c in details.values() for e in c['events']]
     findings=[f for c in analyzed for f in (c.get('findings') or [])]
     indicators=[i for f in findings for i in f.get('indicators',[])]
-    analytics_tabs=st.tabs(["◷ Scam Timeline","♧ Evidence & Agent Analysis","△ Evidence Graph","▥ Scam Tracker","⛨ Final Assessment","▤ Report & Actions"],default="♧ Evidence & Agent Analysis")
+    analytics_tabs=st.tabs(["Scam Timeline","Evidence & Agent Analysis","Scam Tracker","Final Assessment","Report & Actions"],default="Evidence & Agent Analysis")
     with analytics_tabs[0]:
         timeline_cases=len(cs); timeline_events=len(events)
         a,b,c=st.columns(3)
@@ -871,11 +901,12 @@ elif page=="Analytics":
                 outcomes={"High concern":sum(risk(c)=="HIGH_CONCERN" for c in analyzed),"Caution":sum(risk(c)=="CAUTION" for c in analyzed),"Low concern":sum(risk(c)=="LOW_CONCERN" for c in analyzed),"Insufficient":sum(risk(c)=="INSUFFICIENT_EVIDENCE" for c in analyzed)}
                 if analyzed:
                     outcome_colors={"High concern":"#D84A43","Caution":"#D8A332","Low concern":"#278158","Insufficient":"#A9B1A7"}
-                    out_col,list_col=st.columns([.9,1.1],gap="small",vertical_alignment="center")
+                    out_col,list_col=st.columns([1.05,.95],gap="small",vertical_alignment="center")
                     with out_col:
                         fig=px.pie(names=list(outcomes),values=list(outcomes.values()),hole=.62,color=list(outcomes),color_discrete_map=outcome_colors)
-                        fig.update_layout(height=138,margin=dict(l=0,r=0,t=0,b=0),showlegend=False,paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",annotations=[dict(text=f"{len(analyzed)}<br><sup>Cases</sup>",x=.5,y=.5,showarrow=False,font=dict(size=16,color="#17231E"))])
-                        st.plotly_chart(fig,width="stretch",config={"displayModeBar":False},height=138)
+                        fig.update_traces(domain=dict(x=[0.08,0.92],y=[0.08,0.92]))
+                        fig.update_layout(height=128,margin=dict(l=4,r=4,t=4,b=4),showlegend=False,paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",annotations=[dict(text=f"{len(analyzed)}<br><sup>Cases</sup>",x=.5,y=.5,showarrow=False,font=dict(size=15,color="#17231E"))])
+                        st.plotly_chart(fig,width="stretch",config={"displayModeBar":False},height=128)
                     out_html=''.join(f'<div class="outcome-row"><i style="background:{outcome_colors[name]}"></i><span>{name}</span><b>{count} · {count/max(1,len(analyzed)):.0%}</b></div>' for name,count in outcomes.items())
                     list_col.markdown('<div class="outcome-list">'+out_html+'</div><small>Deterministic labels, not fraud probabilities.</small>',unsafe_allow_html=True)
                 else: st.caption("No investigations have saved assessments yet.")
@@ -896,7 +927,7 @@ elif page=="Analytics":
                     agent_cols=["Message Agent","Link & QR Agent","Payment Agent","Timeline Agent","Journey Agent","Decision Agent"]
                     html='<table class="mapping-table"><thead><tr><th>Evidence</th>'+''.join(f'<th>{name.replace(" Agent","")}</th>' for name in agent_cols)+'</tr></thead><tbody>'
                     for kind,names in sorted(type_agents.items()):
-                        html+=f'<tr><td>{kind.replace("_"," ").title()}</td>'+''.join(f'<td class="{"matched" if name in names else "unmatched"}">{"✓" if name in names else "·"}</td>' for name in agent_cols)+'</tr>'
+                        html+=f'<tr><td>{kind}</td>'+''.join(f'<td class="{"matched" if name in names else "unmatched"}">{"✓" if name in names else "·"}</td>' for name in agent_cols)+'</tr>'
                     st.markdown(html+'</tbody></table>',unsafe_allow_html=True)
                 else: st.caption("No saved evidence references yet.")
         with row2b:
@@ -907,7 +938,8 @@ elif page=="Analytics":
                 if code_counts:
                     top=sorted(code_counts.items(),key=lambda x:x[1],reverse=True)[:5]
                     common_fig=px.bar(x=[v for _,v in top],y=[k for k,_ in top],orientation="h",color_discrete_sequence=["#08734D"])
-                    common_fig.update_layout(height=112,margin=dict(l=3,r=4,t=2,b=2),font=dict(size=9),showlegend=False,xaxis_title=None,yaxis_title=None)
+                    common_fig.update_traces(text=[str(v) for _,v in top],textposition="outside",cliponaxis=False)
+                    common_fig.update_layout(height=112,margin=dict(l=3,r=18,t=2,b=2),font=dict(size=9),showlegend=False,xaxis=dict(title=None,showgrid=False,zeroline=False,range=[0,max(1,max(v for _,v in top))*1.25],tickmode="array",tickvals=list(range(max(1,max(v for _,v in top))+1))),yaxis=dict(title=None,autorange="reversed"))
                     st.plotly_chart(common_fig,width="stretch",config={"displayModeBar":False},height=112)
                 else: st.caption("No indicator findings have been recorded.")
         with row2c:
@@ -923,9 +955,21 @@ elif page=="Analytics":
                 st.markdown("### Evidence Usage & Rule Score")
                 if cs:
                     trend=pd.DataFrame({"Case":range(1,len(cs)+1),"Evidence items":[len(details[case['id']]['events']) for case in cs],"Rule score index":[(case.get('assessment') or {}).get('score',0) for case in cs]})
-                    fig=px.line(trend,x="Case",y=["Evidence items","Rule score index"],markers=True,color_discrete_sequence=["#08734D","#C6A76A"])
-                    fig.update_layout(height=110,margin=dict(l=8,r=5,t=5,b=5),font=dict(size=9),legend=dict(orientation="h",y=-.2))
-                    st.plotly_chart(fig,width="stretch",config={"displayModeBar":False},height=110)
+                    fig=go.Figure()
+                    fig.add_trace(go.Scatter(x=trend["Case"],y=trend["Evidence items"],mode="lines+markers",name="Evidence items",line=dict(color="#08734D",width=2),marker=dict(size=6)))
+                    fig.add_trace(go.Scatter(x=trend["Case"],y=trend["Rule score index"],mode="lines+markers",name="Rule score index",line=dict(color="#C6A76A",width=2),marker=dict(size=6)))
+                    y_max=max(2,trend["Evidence items"].max(),trend["Rule score index"].max())
+                    fig.update_layout(
+                        height=118,
+                        margin=dict(l=28,r=5,t=20,b=18),
+                        font=dict(size=8),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        legend=dict(orientation="h",y=1.03,x=0,entrywidth=0.48,entrywidthmode="fraction",font=dict(size=8)),
+                        xaxis=dict(title="",tickmode="array",tickvals=trend["Case"].tolist(),zeroline=False,showgrid=False),
+                        yaxis=dict(title="",range=[0,y_max*1.12],tickfont=dict(size=8),showgrid=True,gridcolor="#EEE5D7",zeroline=False),
+                    )
+                    st.plotly_chart(fig,width="stretch",config={"displayModeBar":False},height=118)
                 else: st.caption("No persisted cases.")
                 st.caption("Rule score is an index, not a fraud probability.")
         with row3b:
@@ -937,44 +981,12 @@ elif page=="Analytics":
         with row3c:
             with st.container(border=True,key="analytics-insights"):
                 st.markdown('<div class="insights-title">💡 Key Insights</div>',unsafe_allow_html=True)
-                top_type=max(type_counts,key=type_counts.get).replace('_',' ').title() if type_counts else "No evidence yet"
+                type_labels={"message":"Messages / Chat","call_summary":"Call Summaries","url":"URLs / Links","qr_payload":"QR Payloads","payment_request":"Payment Requests","payment_attempt":"Payment Attempts","note":"Notes","other":"Files / Other"}
+                top_type=type_labels.get(max(type_counts,key=type_counts.get),"No evidence yet") if type_counts else "No evidence yet"
                 high=sum(risk(case)=="HIGH_CONCERN" for case in analyzed)
-                st.markdown(f'<div class="analytics-key-insights"><div><i>✓</i><span>{len(cs)} persisted cases are included; synthetic cases are labeled in history.</span></div><div><i>✓</i><span>{top_type} is the most common submitted evidence type.</span></div><div><i>✓</i><span>{high} saved assessments have high-concern rule labels.</span></div><div><i>✓</i><span>Scores are deterministic indices, not fraud probabilities.</span></div></div>',unsafe_allow_html=True)
+                case_word="case" if len(cs)==1 else "cases"
+                st.markdown(f'<div class="analytics-key-insights"><div><i>✓</i><span>{len(cs)} persisted {case_word} {"is" if len(cs)==1 else "are"} included; synthetic cases are labeled in history.</span></div><div><i>✓</i><span>{top_type} is the most common submitted evidence type.</span></div><div><i>✓</i><span>{high} saved assessments have high-concern rule labels.</span></div><div><i>✓</i><span>Scores are deterministic indices, not fraud probabilities.</span></div></div>',unsafe_allow_html=True)
     with analytics_tabs[2]:
-        graph_cases=cs
-        if graph_cases:
-            selector=st.selectbox("Select a case",graph_cases,format_func=lambda x:f"{x['title']} · {x['id']}"+(" · Synthetic demo" if x['synthetic'] else ""),key="analytics_graph_case",label_visibility="collapsed")
-            selected=database.get_case(selector['id']); graph,grounded_relations=build_graph(selected['events'])
-            graph_col,relation_col=st.columns([1.35,1],gap="small")
-            with graph_col:
-                with st.container(border=True,key="analytics-graph-visual"):
-                    st.markdown("### Temporal evidence graph")
-                    if graph.number_of_nodes():
-                        pos=nx.spring_layout(graph,seed=23,k=1.1)
-                        fig=go.Figure()
-                        for rel in grounded_relations:
-                            if rel['source'] in pos and rel['target'] in pos:
-                                x0,y0=pos[rel['source']];x1,y1=pos[rel['target']]
-                                color="#C6A76A" if rel['relation']=="REFERENCES_SAME_URL" else "#78A98C"
-                                fig.add_trace(go.Scatter(x=[x0,x1,None],y=[y0,y1,None],mode="lines",line=dict(color=color,width=2),hoverinfo="skip",showlegend=False))
-                        node_ids=list(graph.nodes())
-                        fig.add_trace(go.Scatter(x=[pos[n][0] for n in node_ids],y=[pos[n][1] for n in node_ids],mode="markers+text",text=[graph.nodes[n].get('event_type','event').replace('_',' ').title() for n in node_ids],textposition="bottom center",customdata=[[n,graph.nodes[n].get('event_type'),selected['id']] for n in node_ids],hovertemplate="Evidence %{customdata[0]}<br>Type: %{customdata[1]}<br>Case: %{customdata[2]}<extra></extra>",marker=dict(size=20,color="#08734D",line=dict(color="#C6A76A",width=2)),showlegend=False))
-                        fig.update_layout(height=310,margin=dict(l=10,r=10,t=10,b=35),xaxis=dict(visible=False),yaxis=dict(visible=False),plot_bgcolor="#F5F2EA",paper_bgcolor="#F5F2EA")
-                        st.plotly_chart(fig,width="stretch",config={"displayModeBar":False},height=310)
-                    else: st.info("This case has no evidence events.")
-                    st.caption("Chronology edges follow stored timestamps; exact-URL edges require identical visible URL strings. Edges do not imply common ownership or fraud.")
-            with relation_col:
-                with st.container(border=True,key="analytics-graph-relations"):
-                    st.markdown("### Grounded relationships")
-                    st.markdown("🟢 Chronological sequence　　🟡 Exact URL match")
-                    if grounded_relations:
-                        for rel in grounded_relations[:7]:
-                            st.markdown(f"**{rel['relation'].replace('_',' ').title()}**<br><small>{rel['source']} → {rel['target']} · {rel['origin']} · {rel['confidence']:.0%}</small><br>{rel['explanation']}",unsafe_allow_html=True)
-                            st.divider()
-                    else: st.info("A single event has no relationships to draw yet.")
-                    st.caption(f"{len(selected['events'])} evidence nodes · {len(grounded_relations)} edges · {'Synthetic demo' if selected['synthetic'] else 'User-provided case'}")
-        else: st.info("No cases are saved yet. Add evidence or load the labeled synthetic demo to build a graph.")
-    with analytics_tabs[3]:
         tracker_cases=[case for case in cs if case.get('assessment')]
         if tracker_cases:
             selected_tracker=st.selectbox("Case journey",tracker_cases,format_func=lambda x:f"{x['title']} · {x['id']}"+(" · Synthetic demo" if x['synthetic'] else ""),key="analytics_tracker_case",label_visibility="collapsed")
@@ -999,7 +1011,7 @@ elif page=="Analytics":
                 if c['events']:
                     st.dataframe(pd.DataFrame([{"Stage evidence":e['event_type'].replace('_',' ').title(),"Event ID":e['id'],"Timestamp":e['timestamp'][:16],"Channel":e['channel'],"Agent references":", ".join(f['agent_name'] for f in (c.get('findings') or []) if e['id'] in f.get('evidence_refs',[])) or "No saved agent reference"} for e in c['events']]),width="stretch",height=220,hide_index=True)
         else: st.info("Run an investigation to create a saved candidate journey. Synthetic cases are labeled in Case History.")
-    with analytics_tabs[4]:
+    with analytics_tabs[3]:
         assessment_counts={"HIGH_CONCERN":sum(risk(c)=="HIGH_CONCERN" for c in analyzed),"CAUTION":sum(risk(c)=="CAUTION" for c in analyzed),"LOW_CONCERN":sum(risk(c)=="LOW_CONCERN" for c in analyzed),"INSUFFICIENT_EVIDENCE":sum(risk(c)=="INSUFFICIENT_EVIDENCE" for c in analyzed)}
         total_assessments=len(analyzed); high_count=assessment_counts['HIGH_CONCERN']
         m1,m2,m3=st.columns(3)
@@ -1031,7 +1043,7 @@ elif page=="Analytics":
                         html+=f'<div class="assessment-row"><strong>{row["Case"]}</strong><span class="assessment-risk {risk_class}">{row["Risk"]}</span><span>Index <b>{row["Rule index"]}</b></span><span>{row["Evidence"]} events</span><small class="assessment-reason">{row["Rationale"]}</small></div>'
                     st.markdown(html,unsafe_allow_html=True)
                 else: st.info("Run an investigation to create a saved assessment.")
-    with analytics_tabs[5]:
+    with analytics_tabs[4]:
         report_cases=cs
         label="All persisted cases"
         if cs:
@@ -1051,77 +1063,6 @@ elif page=="Analytics":
         d3.download_button("Download evidence CSV",pd.DataFrame(report_rows).to_csv(index=False),file_name="scamtrace-evidence.csv",mime="text/csv",width="stretch")
         st.warning("Reports contain user-provided evidence. Store and share exported files securely; no data is independently verified.")
         st.caption("All report values are read from the selected persisted case scope. Synthetic entries are explicitly labeled.")
-
-elif page=="Settings":
-    header("Settings","Manage your preferences, AI models, security settings and application configuration.")
-    left,right=st.columns([1,1],gap="small")
-    with left:
-        with st.container(border=True,key="settings-application"):
-            st.markdown("### ⚙ Application Settings")
-            st.caption("Configure basic application preferences and behavior.")
-            a,b=st.columns([1.35,1])
-            a.markdown("**Language**<br><small>Only English is currently available.</small>",unsafe_allow_html=True); b.selectbox("Language",["English"],label_visibility="collapsed",disabled=True,help="Additional translations are not implemented.")
-            a,b=st.columns([1.35,1])
-            a.markdown("**Theme**<br><small>Approved project palette.</small>",unsafe_allow_html=True); b.selectbox("Theme",["Deep Emerald / Warm Ivory"],label_visibility="collapsed",disabled=True,help="The approved palette is locked to the reference design.")
-            a,b=st.columns([1.35,1])
-            a.markdown("**Default View**<br><small>Stored for the next app session.</small>",unsafe_allow_html=True)
-            st.session_state.setdefault("setting_default_view",database.get_setting("default_view","Dashboard"))
-            b.selectbox("Default View",PAGES,label_visibility="collapsed",key="setting_default_view",on_change=_save_default_view_setting)
-            a,b=st.columns([1.35,1])
-            a.markdown("**Auto Save**<br><small>Form text is saved locally as you type.</small>",unsafe_allow_html=True)
-            st.session_state.setdefault("setting_auto_save",str(database.get_setting("auto_save","true")).lower() in {"1","true","yes","on"})
-            b.toggle("Auto Save",key="setting_auto_save",label_visibility="collapsed",on_change=_save_auto_save_setting)
-            a,b=st.columns([1.35,1])
-            a.markdown("**Timezone**<br><small>Current display timezone.</small>",unsafe_allow_html=True); b.selectbox("Timezone",["Asia/Kolkata (IST)"],label_visibility="collapsed",disabled=True,help="Timezone preferences are not implemented.")
-        with st.container(border=True,key="settings-security"):
-            st.markdown("### ⛨ Security Settings")
-            st.caption("Manage authentication and data protection settings.")
-            a,b=st.columns([1.5,1])
-            a.markdown("**Two-Factor Authentication (2FA)**<br><small>Account sign-in is not configured.</small>",unsafe_allow_html=True); b.toggle("Two-Factor Authentication",value=False,disabled=True,label_visibility="collapsed")
-            a,b=st.columns([1.5,1])
-            a.markdown("**Session Timeout**<br><small>Authentication timeout is not configured.</small>",unsafe_allow_html=True); b.selectbox("Session Timeout",["Not configured"],label_visibility="collapsed",disabled=True,help="There is no account authentication layer to configure session expiry.")
-            a,b=st.columns([1.5,1])
-            a.markdown("**Data Encryption**<br><small>Encryption at rest is not configured.</small>",unsafe_allow_html=True); b.toggle("Data Encryption",value=False,disabled=True,label_visibility="collapsed")
-        with st.container(border=True,key="settings-system"):
-            st.markdown("### ⓘ System Information")
-            st.markdown(f'<div class="sys-cards"><div class="sys-card"><small>Application</small><b>v1.0.0</b></div><div class="sys-card"><small>Python</small><b>{sys.version.split()[0]}</b></div><div class="sys-card"><small>Streamlit</small><b>{st.__version__}</b></div><div class="sys-card"><small>Saved Cases</small><b>{len(cases())}</b></div></div>',unsafe_allow_html=True)
-            st.markdown(f'<div class="settings-info-note">SQLite storage · {llm_config["provider"].upper()} provider mode · LangGraph workflow</div>',unsafe_allow_html=True)
-    with right:
-        with st.container(border=True,key="settings-ai"):
-            st.markdown("### ▣ AI & Model Configuration")
-            st.caption("Groq provider and specialist model routing.")
-            a,b=st.columns([1.35,1])
-            a.markdown("**Provider**<br><small>Selected language-model provider.</small>",unsafe_allow_html=True); b.selectbox("Provider",["Groq"],label_visibility="collapsed",disabled=True)
-            a,b=st.columns([1.35,1])
-            a.markdown("**Complex Reasoning**<br><small>Journey and final synthesis model.</small>",unsafe_allow_html=True); b.text_input("Complex Model",value=llm_config['complex_model'],disabled=True,label_visibility="collapsed")
-            st.session_state.setdefault("setting_use_small_model",llm_config["simple_model_enabled"])
-            a,b=st.columns([1.35,1])
-            a.markdown("**Lightweight Specialist Model**<br><small>Use gpt-oss-20b for extraction and classification agents.</small>",unsafe_allow_html=True)
-            b.toggle("Lightweight Specialist Model",key="setting_use_small_model",label_visibility="collapsed",on_change=_save_small_model_setting)
-            a,b=st.columns([1.35,1])
-            a.markdown("**Classification Model**<br><small>Optional lightweight specialist calls.</small>",unsafe_allow_html=True); b.text_input("Simple Model",value=llm_config['simple_model'],disabled=True,label_visibility="collapsed")
-            state="Key configured" if llm_config['key_configured'] else "Key not configured · local fallback"
-            st.markdown(f"**Provider status:** {llm_config['provider'].upper()} · {state}")
-            st.markdown("**Specialist Agents**")
-            latest=next((c for c in cases() if c.get('findings')),None); found={f['agent_name']:f for f in ((latest or {}).get('findings') or [])}
-            agent_html=[]
-            for name in AGENT_NAMES:
-                f=found.get(name); badge=(f.get('model') or f.get('provider','local')) if f else 'Ready'
-                agent_html.append(f'<div class="settings-agent-chip"><b>● {name}</b><small>{badge}</small></div>')
-            st.markdown('<div class="settings-agent-list">'+''.join(agent_html)+'</div>',unsafe_allow_html=True)
-            st.markdown('<div class="settings-credentials-note">Credentials are read from GROQ_API_KEY in environment or Streamlit secrets and are never displayed.</div>',unsafe_allow_html=True)
-        with st.container(border=True,key="settings-storage"):
-            st.markdown("### ▤ Data & Storage")
-            st.caption("Manage local case storage and backup options.")
-            st.markdown(f"**Local Storage Path**<br><small>{database.DB_PATH}</small>",unsafe_allow_html=True)
-            st.markdown(f"**Saved Cases**　{len(cases())}　　**Backup Frequency**　Manual export　　**Retention**　Until deleted")
-            st.caption("Community Cloud storage may be ephemeral. Avoid sensitive evidence in public deployments.")
-        with st.container(border=True,key="settings-about"):
-            st.markdown("### ⓘ About Project")
-            st.markdown("**UPI ScamTrace**　·　Multi-Agent Scam Journey Reconstruction")
-            st.caption("Evidence-oriented student prototype · Streamlit Community Cloud deployment target")
-            if st.button("Open About Project",key="settings_about_project"):
-                st.session_state.page="About Project"; st.rerun()
 
 elif page=="About Project":
     header("About Project","Learn about UPI ScamTrace, its objectives, working, and the technology behind it.")
